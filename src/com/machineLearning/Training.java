@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-/**
+/**git
  * Created by Amy on 26/11/16.
  */
 public class Training {
