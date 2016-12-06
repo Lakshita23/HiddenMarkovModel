@@ -2,24 +2,29 @@ package com.machineLearning;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 public class Main {
     private static TrainingResult trainingResult;
     public final static String LANGUAGE = "EN";
-    public static void main(String[] args) {
+    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
         File trainingFile = (new File(LANGUAGE + "/train.txt"));
 
         Training trainingData = new Training(trainingFile);
         trainingResult = trainingData.getTrainingResult();
 
-//        printEmission(trainingResult.emission);
-//        printTransition(trainingResult.transition);
-//        printLabel(trainingResult.label);
 
         File testFiles = new File(LANGUAGE + "/" + LANGUAGE+ ".in");
-        Test test = new Test(trainingResult);
-        test.writePrediction(testFiles, PredictionAlgorithm.VITERBI);
+
+
+        /*Class Test_k produces k-th best sequence for the input data.
+        Constructor for Test_k takes in parametes: TrainingResult obj, integer k (for k-th best sequence)
+        */
+
+        Test_k test = new Test_k(trainingResult,5);
+        //This Method predicts the sequence using Viterbi algorithm and writes the result to file
+        test.writePrediction(testFiles);
     }
 
     public static void printEmission(Map<EmissionNode, Integer> map) {

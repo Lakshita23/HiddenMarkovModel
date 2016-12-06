@@ -100,8 +100,8 @@ public class Training {
                 }
             }
         }
-        System.out.println(tr.label.toString());
-        System.out.println(tr.labelSorted.toString());
+//        System.out.println(tr.label.toString());
+//        System.out.println(tr.labelSorted.toString());
     }
 
     private void computeEmissionProbability() {
@@ -111,7 +111,7 @@ public class Training {
             double probability = entry.getValue() / totalY;
             tr.emissionProbabilityDefault.put(entry.getKey(), probability);
         }
-//        System.out.println(tr.emissionProbability.toString());
+//        System.out.println(tr.emissionProbabilityDefault.toString());
     }
 
     private void computeTransitionProbability() {
@@ -121,6 +121,6 @@ public class Training {
             double probability = entry.getValue() / totalY;
             tr.transitionProbability.put(entry.getKey(), probability);
         }
-        System.out.println(tr.transitionProbability.toString());
+//        System.out.println(tr.transitionProbability.toString());
     }
 }

@@ -59,14 +59,16 @@ public class Test {
                     next = getYmax(n, next);
                     yMax[n - 2] = next;
                 }
-
-                System.out.println(piMap.toString());
+//
+//                System.out.println(piMap.toString());
                 System.out.println(printYmax());
                 System.out.println("PREDICT: " + sqn.toString() + " " + sqn.size());
                 for (int i = 0; i < sqn.size(); i++) {
                     result = result + sqn.get(i) + " " + yMax[i] + "\n";
                 }
                 result = result + "\n";
+
+                break;
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -89,6 +91,7 @@ public class Test {
 
     private void computePi(int index, List<String> sqn, boolean emissionDefault) {
         List<Pi> piList = new ArrayList<Pi>();
+
         if (index == 0) {
             piList.add(new Pi("START", 1));
             piMap.put(0, piList);
@@ -113,6 +116,7 @@ public class Test {
             String word = sqn.get(index - 1);
             List<Pi> prevPi = piMap.get(index - 1);
             boolean allZeros = true;
+
             for (String y : trainingResult.labelSorted) {
                 if (y.equals("STOP") || y.equals("START")) {
                     continue;
