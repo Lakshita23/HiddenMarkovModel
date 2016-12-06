@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by lakshitachhikara on 12/4/16.
@@ -25,9 +27,16 @@ public class Test_k {
     //Stores the k-th sequence during backward viterbi.
     String[] yMax;
     boolean allZeros;
+    boolean optimize;
     int k;
 
-    public Test_k(TrainingResult trainingResult, int k) {
+    private String wordPattern = "(?i)@*[a-z]*";
+    private String usernamePattern = "^@?(\\w){1,15}$";
+    private Pattern rWord = Pattern.compile(wordPattern);
+    private Pattern rUsername = Pattern.compile(usernamePattern);
+
+    public Test_k(TrainingResult trainingResult, int k, boolean optimize) {
+        this.optimize = optimize;
         this.trainingResult = trainingResult;
         this.k = k;
     }
@@ -85,7 +94,7 @@ public class Test_k {
 
                 }
 
-                System.out.println("PREDICT: " + sqn.toString() + " " + sqn.size());
+//                System.out.println("PREDICT: " + sqn.toString() + " " + sqn.size());
                 //Store result of predictions in file
                 for (int i = 0; i < sqn.size(); i++) {
                     result = result + sqn.get(i) + " " + yMax[i] + "\n";
@@ -140,6 +149,12 @@ public class Test_k {
             String word = sqn.get(index - 1);
             List<Pi_k> prevPi = piMap.get(index - 1);
             allZeros = true;
+
+            if (optimize) {
+                word = word.toLowerCase().replace("'", "").replace("#", "").replace(".", "").replace("@", "").replace(" ", "");
+            }
+
+
             //For each label, compute k probabilities
             for (String y : trainingResult.labelSorted) {
                 if (y.equals("STOP") || y.equals("START")) {
@@ -163,7 +178,10 @@ public class Test_k {
             double eProbability = 0;
             double tProbability = getTransmissionProbability(prev.tag, y);
             EmissionNode e = new EmissionNode(word, y);
-            if (emissionDefault) {
+            if (y.equals("O") && optimize && ignore(word)) {
+                eProbability = 1.0;
+            }
+            else if (emissionDefault) {
                 eProbability = getEmissionProbabilityDefault(word, y);
             } else {
                 eProbability = getEmissionProbability(word, y);
@@ -188,24 +206,31 @@ public class Test_k {
     private double getEmissionProbability(String x, String y) {
         EmissionNode test = new EmissionNode(x, y);
         double probability = 0;
-        if (trainingResult.emissionProbabilityDefault.containsKey(test)) {
-            probability = trainingResult.emissionProbabilityDefault.get(test);
+        if (trainingResult.emissionProbability.containsKey(test)) {
+            probability = trainingResult.emissionProbability.get(test);
         } else if (!trainingResult.trainedWords.contains(x)) {
             probability = getEmissionProbabilityDefault(x, y);
         }
+//        System.out.println(y + "->" + x + " : " + probability);
         return probability;
     }
+
     private double getEmissionProbabilityDefault(String x, String y) {
         EmissionNode test = new EmissionNode(x, y);
         double probability = 0;
-        if (trainingResult.emissionProbabilityDefault.containsKey(test)) {
-            probability = trainingResult.emissionProbabilityDefault.get(test);
+        if (trainingResult.emissionProbability.containsKey(test)) {
+            probability = trainingResult.emissionProbability.get(test);
         } else {
             double totalY = trainingResult.label.get(y) + 1;
+            if (optimize) {
+                totalY -= trainingResult.ignored.get(y);
+            }
+
             probability = 1 / totalY;
         }
         return probability;
     }
+
     private double getTransmissionProbability(String y1, String y2) {
         TransitionNode test = new TransitionNode(y1, y2);
         double probability;
@@ -224,5 +249,32 @@ public class Test_k {
             result = result + yMax[i] + " ";
         }
         return result;
+    }
+    private boolean ignore(String word) {
+        if (trainingResult.stopwords.contains(word)) {
+            return true;
+        } else if (!isWord(word)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isWord(String word) {
+        if (word.equals("")) {
+            return false;
+        }
+        Matcher m = rWord.matcher(word);
+        if (m.matches()) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isUsername(String word) {
+        Matcher m = rUsername.matcher(word);
+        if (m.matches()) {
+            return true;
+        }
+        return false;
     }
 }

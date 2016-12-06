@@ -2,14 +2,23 @@ package com.machineLearning;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Test {
     TrainingResult trainingResult;
     Map<Integer, List<Pi>> piMap;
     String[] yMax;
     int count = 0;
+    boolean optimize;
 
-    public Test(TrainingResult trainingResult) {
+    private String wordPattern = "(?i)@*[a-z]*";
+    private String usernamePattern = "^@?(\\w){1,15}$";
+    private Pattern rWord = Pattern.compile(wordPattern);
+    private Pattern rUsername = Pattern.compile(usernamePattern);
+
+    public Test(TrainingResult trainingResult, boolean optimize) {
+        this.optimize = optimize;
         this.trainingResult = trainingResult;
     }
 
@@ -59,16 +68,14 @@ public class Test {
                     next = getYmax(n, next);
                     yMax[n - 2] = next;
                 }
-//
-//                System.out.println(piMap.toString());
+
+                System.out.println(piMap.toString());
                 System.out.println(printYmax());
                 System.out.println("PREDICT: " + sqn.toString() + " " + sqn.size());
                 for (int i = 0; i < sqn.size(); i++) {
                     result = result + sqn.get(i) + " " + yMax[i] + "\n";
                 }
                 result = result + "\n";
-
-                break;
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -81,7 +88,9 @@ public class Test {
         Pi max = new Pi("", Double.MIN_VALUE);
         for (Pi pi : prevPi) {
             double newProb = pi.probability * getTransmissionProbability(pi.tag, finalNode);
+            System.out.println(n + " " + pi.tag + " " + newProb + " " + pi.probability + " " + getTransmissionProbability(pi.tag, finalNode));
             if (newProb > max.probability) {
+                System.out.println(pi.tag);
                 max.probability = newProb;
                 max.tag = pi.tag;
             }
@@ -91,7 +100,6 @@ public class Test {
 
     private void computePi(int index, List<String> sqn, boolean emissionDefault) {
         List<Pi> piList = new ArrayList<Pi>();
-
         if (index == 0) {
             piList.add(new Pi("START", 1));
             piMap.put(0, piList);
@@ -114,10 +122,20 @@ public class Test {
             piMap.put(index, piList);
         } else {
             String word = sqn.get(index - 1);
+            if (optimize) {
+                System.out.println(word);
+                word = word.toLowerCase().replace("'", "").replace("#", "").replace(".", "").replace("@", "").replace(" ", "");
+                System.out.println(word);
+            }
             List<Pi> prevPi = piMap.get(index - 1);
             boolean allZeros = true;
 
             for (String y : trainingResult.labelSorted) {
+                if (y.equals("O") && optimize && ignore(word)) {
+                    System.out.println(word);
+                    piList.add(new Pi(y, 1));
+                    continue;
+                }
                 if (y.equals("STOP") || y.equals("START")) {
                     continue;
                 }
@@ -200,8 +218,8 @@ public class Test {
     private double getEmissionProbability(String x, String y) {
         EmissionNode test = new EmissionNode(x, y);
         double probability = 0;
-        if (trainingResult.emissionProbabilityDefault.containsKey(test)) {
-            probability = trainingResult.emissionProbabilityDefault.get(test);
+        if (trainingResult.emissionProbability.containsKey(test)) {
+            probability = trainingResult.emissionProbability.get(test);
         } else if (!trainingResult.trainedWords.contains(x)) {
             probability = getEmissionProbabilityDefault(x, y);
         }
@@ -212,10 +230,14 @@ public class Test {
     private double getEmissionProbabilityDefault(String x, String y) {
         EmissionNode test = new EmissionNode(x, y);
         double probability = 0;
-        if (trainingResult.emissionProbabilityDefault.containsKey(test)) {
-            probability = trainingResult.emissionProbabilityDefault.get(test);
+        if (trainingResult.emissionProbability.containsKey(test)) {
+            probability = trainingResult.emissionProbability.get(test);
         } else {
             double totalY = trainingResult.label.get(y) + 1;
+            if (optimize) {
+                totalY -= trainingResult.ignored.get(y);
+            }
+
             probability = 1 / totalY;
         }
         return probability;
@@ -240,5 +262,33 @@ public class Test {
             result = result + yMax[i] + " ";
         }
         return result;
+    }
+
+    private boolean ignore(String word) {
+        if (trainingResult.stopwords.contains(word)) {
+            return true;
+        } else if (!isWord(word)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isWord(String word) {
+        if (word.equals("")) {
+            return false;
+        }
+        Matcher m = rWord.matcher(word);
+        if (m.matches()) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isUsername(String word) {
+        Matcher m = rUsername.matcher(word);
+        if (m.matches()) {
+            return true;
+        }
+        return false;
     }
 }
